@@ -10,6 +10,9 @@ void Player::DecreaseHp(int& hp)
 {
 	_hp -= hp;
 	std::cout << "Enemy's HP decreased by " << hp << ". Current HP: " << _hp << std::endl;
+	if (_hp < 0) {
+		Destroy();
+	}
 }
 void Player::AddExp(int& exp)
 {
@@ -17,7 +20,7 @@ void Player::AddExp(int& exp)
 }
 void Player::Destroy()
 {
-	std::cout << "Enemy destroyed!" << std::endl;
+	std::cout << "TaiSha!" << std::endl;
 }
 
 void Player::AddItem(int itemId)

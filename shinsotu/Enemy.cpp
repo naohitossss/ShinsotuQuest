@@ -1,5 +1,5 @@
-#include "Enemy.h"
 #include <iostream>
+#include "Enemy.h"
 
 void Enemy::IncreaseHp(int &hp)
 {

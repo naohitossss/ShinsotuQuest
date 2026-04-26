@@ -129,9 +129,12 @@
     <ClInclude Include="Position.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="BattleProfesser.cpp" />
     <ClCompile Include="BattleProfessor.h" />
-    <ClCompile Include="CommandPoffesser.h" />
+    <ClCompile Include="CommandProffesser.h" />
+    <ClCompile Include="CommandProffesser.cpp" />
     <ClCompile Include="Enemy.cpp" />
+    <ClCompile Include="main.cpp" />
     <ClCompile Include="Player.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
