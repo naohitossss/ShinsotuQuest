@@ -15,3 +15,16 @@ int LevelManager::GetLevelExp(Position position) const {
     }
     return 0;
 }
+
+/*
+#include <conio.h>
+if (_kbhit()) {
+            // バッファから1文字取得（エコーバックなし）
+            int inputKey = _getch(); 
+
+            switch (inputKey) {
+                case 32: // スペースキー
+                    return CommandType::INTERACT;
+                
+                case 27: // Escキー
+                    return CommandType::CANCEL;*/
