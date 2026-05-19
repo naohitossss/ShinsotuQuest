@@ -1,0 +1,155 @@
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/Character.h"
+#include "WirePlayerCharacter.generated.h"
+
+UCLASS()
+class  AWirePlayerCharacter : public ACharacter
+{
+
+public:
+UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire System")
+    TSubclassOf<AActor> AnchorClassFilter;
+protected:
+    // 左ワイヤー射出のメインロジック
+    UFUNCTION(BlueprintCallable, Category = "Wire System")
+    void CheckLeftWireAnkor();
+
+protected:
+    // ワイヤーの最大射程距離（探索半径）
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wire System")
+    float MaxWireRange;
+};
+
+
+
+#include "WirePlayerCharacter.h"
+#include "AnchorActor.h" // 独自のアンカークラスのヘッダをインクルード
+#include "Engine/World.h"
+#include "CollisionQueryParams.h"
+#include "Math/Vector.h"
+
+// コンストラクタの実装
+AWirePlayerCharacter::AWirePlayerCharacter()
+{
+    PrimaryActorTick.bCanEverTick = true;
+
+    // 変数の初期化（接頭辞なし）
+    MaxWireRange = 2500.0f;
+    WireTraceChannel = ECC_Visibility;
+}
+void AWirePlayerCharacter::CheckLeftWireAnkor()
+{
+    FVector PlayerLocation = GetActorLocation();
+    FVector PlayerForward = GetActorForwardVector();
+    FVector PlayerRight = GetActorRightVector();
+
+    TArray<FOverlapResult> OverlapResults;
+    FCollisionShape SphereCollision = FCollisionShape::MakeSphere(MaxWireRange);
+    FCollisionQueryParams QueryParams;
+    QueryParams.AddIgnoredActor(this); // プレイヤー自身を探索から除外
+
+    // 指定半径内の物理オブジェクトを収集
+    bool bHasOverlap = GetWorld()->OverlapMultiByChannel(
+        OverlapResults,
+        PlayerLocation,
+        FQuat::Identity,
+        WireTraceChannel,
+        SphereCollision,
+        QueryParams
+    );
+
+    // 比較用変数の初期化
+    AActor* ClosestAnchorActor = nullptr;
+    float MinAnchorDistance = MAX_FLT;
+
+    AActor* ClosestOtherActor = nullptr;
+    float MinOtherDistance = MAX_FLT;
+
+    if (bHasOverlap)
+    {
+        for (const FOverlapResult& Result : OverlapResults)
+        {
+            AActor* HitActor = Result.GetActor();
+            if (HitActor == nullptr) 
+            {
+                continue;
+            }
+
+            FVector DirectionToTarget = HitActor->GetActorLocation() - PlayerLocation;
+            float Distance = DirectionToTarget.SizeSquared();
+            DirectionToTarget.Normalize();
+
+            // 角度評価用ベクトルの内積計算
+            float ForwardDot = FVector::DotProduct(PlayerForward, DirectionToTarget);
+            float RightDot = FVector::DotProduct(PlayerRight, DirectionToTarget);
+
+            // 条件: 正面 (ForwardDot > 0) かつ 左側 (RightDot < 0)
+            if (ForwardDot > 0.0f && RightDot < 0.0f)
+            {
+                FHitResult LineHitResult;
+                FCollisionQueryParams TraceParams;
+                TraceParams.AddIgnoredActor(this);
+
+                // 遮蔽判定（Line of Sight）の実行
+                bool bHit = GetWorld()->LineTraceSingleByChannel(
+                    LineHitResult,
+                    PlayerLocation,
+                    HitActor->GetActorLocation(),
+                    WireTraceChannel,
+                    TraceParams
+                );
+
+                // 射線上に障害物が存在する場合は対象から除外（スキップ）
+                if (bHit && LineHitResult.GetActor() != HitActor)
+                {
+                    continue; 
+                }
+
+                bool IsAnchor = false;
+                
+                // 外から設定されたフィルター型が有効な場合のみ判定を実行
+                if (AnchorClassFilter != nullptr)
+                {
+                    // HitActorが、エディタで指定された型（またはその子クラス）であるか判定
+                    IsAnchor = HitActor->IsA(AnchorClassFilter);
+                }
+
+                if (IsAnchor)
+                {
+                    if (Distance < MinAnchorDistance)
+                    {
+                        MinAnchorDistance = Distance;
+                        ClosestAnchorActor = HitActor;
+                    }
+                }
+                else
+                {
+                    if (DistanceSq < MinOtherDistance)
+                    {
+                        MinOtherDistance = Distance;
+                        ClosestOtherActor = HitActor;
+                    }
+                }
+            }
+        }
+    }
+
+    // 最適な対象（TargetActor）の確定
+    AActor* FinalTargetActor = nullptr;
+    
+    // アンカーが一つでも存在・非遮蔽であれば最優先する
+    if (ClosestAnchorActor != nullptr)
+    {
+        FinalTargetActor = ClosestAnchorActor;
+    }
+    // アンカーが存在しない場合、その他の非遮蔽オブジェクトを採用する
+    else if (ClosestOtherActor != nullptr)
+    {
+        FinalTargetActor = ClosestOtherActor;
+    }
+
+    // 確定した対象へワイヤーを射出
+    
+}
